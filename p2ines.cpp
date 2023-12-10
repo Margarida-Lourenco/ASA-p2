@@ -1,41 +1,97 @@
 #include <vector>
 #include <stdio.h>
 #include <string>
-#include <iostream>
-#include <string>
 using namespace std;
-
 
 // Vertex struct
 typedef struct {
     int id;
     bool visited;
     vector<int> edges;
-} Vertex;
+} vertex;
 
+
+int firstDFS(vector<vertex> &graph, int currentVertex, vector<int> &endTimeList){
+    if (graph[currentVertex].visited)
+        return 0;
+    
+    graph[currentVertex].visited = true;
+
+    for (int i: graph[currentVertex].edges){
+        firstDFS(graph, i, endTimeList);
+    }
+
+    endTimeList.push_back(currentVertex);   // list of vertices in order of decreasing end time
+    return 0;
+}
+
+
+void transposeGraph(vector<vertex> &graph, vector<vertex> &transposedGraph){
+    for (vertex v : graph){
+        for (int i: v.edges){
+            transposedGraph[i].edges.push_back(v.id);
+        }
+    }
+}
+
+int secondDFS(vector<vertex> &graph, int currentVertex, const vector<int> &endTimeList){
+    // reset visited
+    for (vertex &v : graph){
+        v.visited = false;
+    }
+
+    for (int i : endTimeList){
+        if (graph[i].visited)
+            continue;
+        
+        graph[i].visited = true;
+        for (int j : graph[endTimeList[i]].edges){
+            secondDFS(graph, graph[j].id, endTimeList);
+        }
+    }
+    return 0;
+}
+    
 int main(){
-    int n, m, time = 0;
-    vector<Vertex> graph;
+    int n, m;
+    vector<int> endTimeList;
     
     if (scanf("%d %d", &n, &m) != 2) {
-        printf("Error reading number of individuos and relations\n");
         return 1;
     }
 
     if ((n < 2) || m < 0)
         return 1;
 
-    for (int i = 0; i < m; i++) {
+    vector<vertex>graph (n+1, {0, false, {}});
+
+    while (m > 0) {
         int x, y;
-        if (scanf("%d %d", &x, &y) != 2) {
-            printf("Error reading relation\n");
+
+        if (scanf("%d %d", &x, &y) != 2)
             return 1;
+
+        if (x >= 1 && x <= n && y >= 1 && y <= n) {
+            graph[x].id = x;
+            graph[x].visited = false;
+            graph[x].edges.push_back(y);
+
+        } else {
+            return 1;   // values out of range
         }
-        Vertex newVertex = {x, false};
-        newVertex.edges.push_back(y);
-        graph.push_back(newVertex);
+        m--;
     }
 
+    for (vertex v : graph){
+        firstDFS(graph, v.id, endTimeList);
+    }
+
+    vector<vertex> transposedGraph (n+1, {0, false, {}});
+    transposeGraph(graph, transposedGraph);
+
+    secondDFS(transposedGraph, 0, endTimeList);
+    return 0;
+}
     /*
     ===========================================================================
     1. Encontrar os SCCs de um grafo
@@ -63,7 +119,3 @@ int main(){
     ao escolher a raiz do caminho, mas aquando da exploração do caminho em si, 
     não importa - podemos escolher qualquer vértice.
     */
-    
-    
-    return 0;
-}
