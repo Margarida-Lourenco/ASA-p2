@@ -1,8 +1,6 @@
 #include <vector>
 #include <stdio.h>
-#include <iostream>
 #include <string>
-#include <sstream>
 
 // Vertex struct
 typedef struct {
@@ -55,10 +53,9 @@ int secondDFS(std::vector<vertex> &graph, int currentVertex, const std::vector<i
     
 int main(){
     int n, m;
-    std::string line;
     std::vector<int> endTimeList;
     
-    if (!std::getline(std::cin, line) || sscanf(line.c_str(), "%d %d", &n, &m) != 2) {
+    if (scanf("%d %d", &n, &m) != 2) {
         return 1;
     }
 
@@ -67,21 +64,21 @@ int main(){
 
     std::vector<vertex>graph (n+1, {0, false, {}});
 
-    while (std::getline(std::cin, line)) {
-        std::istringstream iss(line);
+    while (m > 0) {
         int x, y;
 
-        if (!(iss >> x >> y)) {  // error when reading, stop condition
-            break;
-        }
+        if (scanf("%d %d", &x, &y) != 2)
+            return 1;
 
         if (x >= 1 && x <= n && y >= 1 && y <= n) {
             graph[x].id = x;
             graph[x].visited = false;
             graph[x].edges.push_back(y);
+
         } else {
             return 1;   // values out of range
         }
+        m--;
     }
 
     for (int i = 1; i <= n; i++){
