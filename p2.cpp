@@ -1,6 +1,7 @@
 #include <vector>
 #include <stdio.h>
 #include <string>
+#include <algorithm>
 
 // Vertex struct
 typedef struct {
@@ -27,27 +28,21 @@ int firstDFS(std::vector<vertex> &graph, int currentVertex, std::vector<int> &en
 
 void transposeGraph(std::vector<vertex> &graph, std::vector<vertex> &transposedGraph){
     for (int i = 1; i < (int) graph.size(); i++){
+            transposedGraph[i].id = i;
         for (int j = 0; j < (int) graph[i].edges.size(); j++){
             transposedGraph[graph[i].edges[j]].edges.push_back(i);
         }
     }
 }
 
-int secondDFS(std::vector<vertex> &graph, int currentVertex, const std::vector<int> &endTimeList){
-    // reset visited
-    for (auto &v : graph){
-        v.visited = false;
-    }
-
-    for (int i = 0; i < (int) endTimeList.size(); i++){
-        if (graph[endTimeList[i]].visited)
-            continue;
+int secondDFS(std::vector<vertex> &graph, int currentVertex/*, const std::vector<int> &endTimeList*/){
+        if (graph[currentVertex].visited)
+            return 0;
         
-        graph[endTimeList[i]].visited = true;
-        for (int j = 0; j < (int) graph[endTimeList[i]].edges.size(); j++){
-            secondDFS(graph, graph[endTimeList[i]].edges[j], endTimeList);
+        graph[currentVertex].visited = true;
+        for (int j = 0; j < (int) graph[currentVertex].edges.size(); j++){
+            secondDFS(graph, graph[currentVertex].edges[j]);
         }
-    }
     return 0;
 }
     
@@ -88,8 +83,23 @@ int main(){
     std::vector<vertex> transposedGraph (n+1, {0, false, {}});
     transposeGraph(graph, transposedGraph);
 
-    for(int i = 0; i < (int) endTimeList.size(); i++){
-        secondDFS(transposedGraph, i, endTimeList);
+    // reset visited
+    for (auto &v : transposedGraph){
+        v.visited = false;
     }
+
+    for(int i = 0; i < (int) endTimeList.size(); i++){
+        secondDFS(transposedGraph, endTimeList[i]);
+    }
+
+    //prints transposed graph
+    /*for (vertex v : transposedGraph){
+        printf("%d: ", v.id);
+        for (int i : v.edges){
+            printf("%d ", i);
+        }
+        printf("\n");
+    }*/
+
     return 0;
 }
