@@ -92,7 +92,7 @@ int main(){
     transposeGraph(graph, transposedGraph);
 
     for(int i = 0; i < (int) endTimeList.size(); i++){
-        secondDFS(transposedGraph, 1, endTimeList);
+        secondDFS(transposedGraph, i, endTimeList);
     }
     return 0;
 }
