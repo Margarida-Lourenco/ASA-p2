@@ -1,6 +1,7 @@
 #include <vector>
 #include <stdio.h>
 #include <string>
+#include <list>
 using namespace std;
 
 // Vertex struct
@@ -10,8 +11,10 @@ typedef struct {
     vector<int> edges;
 } vertex;
 
+int result = 0;
+int firstVertex = 0;
 
-int firstDFS(vector<vertex> &graph, int currentVertex, vector<int> &endTimeList){
+int firstDFS(vector<vertex> &graph, int currentVertex, list<int> &endTimeList){
     if (graph[currentVertex].visited)
         return 0;
     
@@ -21,40 +24,37 @@ int firstDFS(vector<vertex> &graph, int currentVertex, vector<int> &endTimeList)
         firstDFS(graph, i, endTimeList);
     }
 
-    endTimeList.push_back(currentVertex);   // list of vertices in order of decreasing end time
+    endTimeList.push_front(currentVertex);   // list of vertices in order of decreasing end time
     return 0;
 }
 
 
-void transposeGraph(vector<vertex> &graph, vector<vertex> &transposedGraph){
-    for (vertex v : graph){
-        for (int i: v.edges){
-            transposedGraph[i].edges.push_back(v.id);
+void transpose(vector<vertex> &graph, vector<vertex> &transposedGraph){
+    for (int i = 1; i < (int) graph.size(); i++){
+        transposedGraph[i].id = i;
+        for (int j = 0; j < (int) graph[i].edges.size(); j++){
+            transposedGraph[graph[i].edges[j]].edges.push_back(i);
         }
     }
 }
 
-int secondDFS(vector<vertex> &graph, int currentVertex, const vector<int> &endTimeList){
-    // reset visited
-    for (vertex &v : graph){
-        v.visited = false;
-    }
-
-    for (int i : endTimeList){
-        if (graph[i].visited)
-            continue;
+int secondDFS(vector<vertex> &graph, int currentVertex){
+    // If we reach the first vertex again, we have a cycle
+    if (graph[currentVertex].visited && currentVertex == firstVertex)
+        return result++;
+    else if (graph[currentVertex].visited)
+        return 0;
         
-        graph[i].visited = true;
-        for (int j : graph[endTimeList[i]].edges){
-            secondDFS(graph, graph[j].id, endTimeList);
-        }
+    graph[currentVertex].visited = true;
+    for (int j : graph[currentVertex].edges){
+        secondDFS(graph, graph[j].id);
     }
     return 0;
 }
     
 int main(){
     int n, m;
-    vector<int> endTimeList;
+    list<int> endTimeList;
     
     if (scanf("%d %d", &n, &m) != 2) {
         return 1;
@@ -87,12 +87,24 @@ int main(){
     }
 
     vector<vertex> transposedGraph (n+1, {0, false, {}});
-    transposeGraph(graph, transposedGraph);
+    transpose(graph, transposedGraph);
 
-    secondDFS(transposedGraph, 0, endTimeList);
+    // reset visited
+    for (vertex &v : transposedGraph){
+        v.visited = false;
+    }
+
+    // Iterate through vertices in order of decreasing finishing times
+    for (int i : endTimeList) {
+        firstVertex = i;
+        secondDFS(transposedGraph, i);
+    }
+
+    printf("%d\n", result);
+
     return 0;
 }
-    /*
+/*
     ===========================================================================
     1. Encontrar os SCCs de um grafo
         * SCC - Strongly Connected Component
@@ -118,4 +130,4 @@ int main(){
     decrescente que guardámos no primeiro passo. A ordem decrescente é relevante 
     ao escolher a raiz do caminho, mas aquando da exploração do caminho em si, 
     não importa - podemos escolher qualquer vértice.
-    */
+*/
