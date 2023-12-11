@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <string>
 #include <list>
-#include <stack>
 using namespace std;
 
 // Vertex struct
@@ -16,27 +15,16 @@ int result = 0;
 int firstVertex = 0;
 
 int firstDFS(vector<vertex> &graph, int currentVertex, list<int> &endTimeList){
-    if(currentVertex == 0)
+    if (graph[currentVertex].visited)
         return 0;
+    
+    graph[currentVertex].visited = true;
 
-    stack<int> stack;
-    stack.push(currentVertex);
-
-    while(!stack.empty()){
-        currentVertex = stack.top();
-        stack.pop();
-
-        if (!graph[currentVertex].visited){
-            endTimeList.push_front(currentVertex);
-            graph[currentVertex].visited = true;
-
-            for (int i : graph[currentVertex].edges){
-                if (!graph[i].visited){
-                    stack.push(i);
-                }
-            }
-        }
+    for (int i: graph[currentVertex].edges){
+        firstDFS(graph, i, endTimeList);
     }
+
+    endTimeList.push_front(currentVertex);   // list of vertices in order of decreasing end time
     return 0;
 }
 
@@ -94,8 +82,8 @@ int main(){
         m--;
     }
 
-    for (int i = 1; i < (int) graph.size(); i++){
-        firstDFS(graph, graph[i].id, endTimeList);
+    for (vertex v : graph){
+        firstDFS(graph, v.id, endTimeList);
     }
 
     for(int i : endTimeList){

@@ -80,6 +80,15 @@ int main(){
         firstDFS(graph, i, endTimeList);
     }
 
+    //prints graph
+    for (vertex v : graph){
+        printf("%d: ", v.id);
+        for (int i : v.edges){
+            printf("%d ", i);
+        }
+        printf("\n");
+    }
+
     std::vector<vertex> transposedGraph (n+1, {0, false, {}});
     transposeGraph(graph, transposedGraph);
 
