@@ -29,7 +29,6 @@ int firstDFS(vector<vertex> &graph, int currentVertex, list<int> &endTimeList){
             stack.pop();
         }
         else{ 
-            //endTimeList.push_front(currentVertex);
             graph[currentVertex].visited = true;
 
             for (int i : graph[currentVertex].edges){
@@ -37,6 +36,7 @@ int firstDFS(vector<vertex> &graph, int currentVertex, list<int> &endTimeList){
                     stack.push(i);
                 }
             }
+           endTimeList.push_front(currentVertex); 
         }
     }
     return 0;
@@ -96,6 +96,7 @@ int main(){
     //for(int i : endTimeList){
     //    printf("%d ", i);
     //}
+    //printf("\n");
 
     // Iterate through vertices in order of decreasing finishing times
     for (int i : endTimeList) {
@@ -103,7 +104,7 @@ int main(){
         secondDFS(transposedGraph, i);
     }
 
-    //printf("%d\n", result);
+    printf("%d\n", result);
 
     return 0;
 }
