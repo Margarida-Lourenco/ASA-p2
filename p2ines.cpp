@@ -24,10 +24,12 @@ int firstDFS(vector<vertex> &graph, int currentVertex, list<int> &endTimeList){
 
     while(!stack.empty()){
         currentVertex = stack.top();
-        stack.pop();
 
-        if (!graph[currentVertex].visited){
-            endTimeList.push_front(currentVertex);
+        if (graph[currentVertex].visited){
+            stack.pop();
+        }
+        else{ 
+            //endTimeList.push_front(currentVertex);
             graph[currentVertex].visited = true;
 
             for (int i : graph[currentVertex].edges){
@@ -38,16 +40,6 @@ int firstDFS(vector<vertex> &graph, int currentVertex, list<int> &endTimeList){
         }
     }
     return 0;
-}
-
-
-void transpose(vector<vertex> &graph, vector<vertex> &transposedGraph){
-    for (int i = 1; i < (int) graph.size(); i++){
-        transposedGraph[i].id = i;
-        for (int j = 0; j < (int) graph[i].edges.size(); j++){
-            transposedGraph[graph[i].edges[j]].edges.push_back(i);
-        }
-    }
 }
 
 int secondDFS(vector<vertex> &graph, int currentVertex){
@@ -76,8 +68,9 @@ int main(){
         return 1;
 
     vector<vertex>graph (n+1, {0, false, {}});
+    vector<vertex>transposedGraph (n+1, {0, false, {}}); 
 
-    while (m > 0) {
+    for (int i = 0; i < m; i++) {
         int x, y;
 
         if (scanf("%d %d", &x, &y) != 2)
@@ -88,27 +81,21 @@ int main(){
             graph[x].visited = false;
             graph[x].edges.push_back(y);
 
+            transposedGraph[y].id = y;
+            transposedGraph[y].visited = false;
+            transposedGraph[y].edges.push_back(x);
         } else {
             return 1;   // values out of range
         }
-        m--;
     }
 
     for (int i = 1; i < (int) graph.size(); i++){
         firstDFS(graph, graph[i].id, endTimeList);
     }
 
-    for(int i : endTimeList){
-        printf("%d ", i);
-    }
-
-    vector<vertex> transposedGraph (n+1, {0, false, {}});
-    transpose(graph, transposedGraph);
-
-    // reset visited
-    for (vertex &v : transposedGraph){
-        v.visited = false;
-    }
+    //for(int i : endTimeList){
+    //    printf("%d ", i);
+    //}
 
     // Iterate through vertices in order of decreasing finishing times
     for (int i : endTimeList) {
@@ -116,7 +103,7 @@ int main(){
         secondDFS(transposedGraph, i);
     }
 
-    printf("%d\n", result);
+    //printf("%d\n", result);
 
     return 0;
 }
@@ -134,8 +121,7 @@ int main(){
          que têm arcos para vértices fora do seu SCC.
     ===========================================================================
 
-    Resolução (Resumos LEIC-A):
-    O algoritmo para chegar aos SCCs de um grafo é bastante simples:
+    O algoritmo para chegar aos SCCs de um grafo:
 
     -> Fazer uma DFS normal, guardando uma lista com os vértices ordenada 
     de modo decrescente pelos respetivos tempos de fim.
