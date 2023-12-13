@@ -43,15 +43,30 @@ int firstDFS(vector<vertex> &graph, int currentVertex, list<int> &endTimeList){
 }
 
 int secondDFS(vector<vertex> &graph, int currentVertex){
-    // If we reach the first vertex again, we have a cycle
-    if (graph[currentVertex].visited && currentVertex == firstVertex)
-        return result++;
-    else if (graph[currentVertex].visited)
+    if(currentVertex == 0)
         return 0;
-        
-    graph[currentVertex].visited = true;
-    for (int j : graph[currentVertex].edges){
-        secondDFS(graph, graph[j].id);
+
+    stack<int> stack;
+    stack.push(currentVertex);
+
+    while(!stack.empty()){
+        currentVertex = stack.top();
+
+        if (graph[currentVertex].visited){
+            stack.pop();
+        }
+        else{ 
+            if (currentVertex == firstVertex){
+                result++;
+            }   
+            graph[currentVertex].visited = true;
+
+            for (int i : graph[currentVertex].edges){
+                if (!graph[i].visited){
+                    stack.push(i);
+                }
+            }
+        }
     }
     return 0;
 }
@@ -92,11 +107,6 @@ int main(){
     for (int i = 1; i < (int) graph.size(); i++){
         firstDFS(graph, graph[i].id, endTimeList);
     }
-
-    //for(int i : endTimeList){
-    //    printf("%d ", i);
-    //}
-    //printf("\n");
 
     // Iterate through vertices in order of decreasing finishing times
     for (int i : endTimeList) {
