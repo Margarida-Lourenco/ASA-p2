@@ -13,7 +13,7 @@ typedef struct {
 } vertex;
 
 int result = 0;
-int firstVertex = 0;
+int FOUND = 0;
 
 int firstDFS(vector<vertex> &graph, int currentVertex, list<int> &endTimeList){
     if(currentVertex == 0)
@@ -42,31 +42,29 @@ int firstDFS(vector<vertex> &graph, int currentVertex, list<int> &endTimeList){
     return 0;
 }
 
-int secondDFS(vector<vertex> &graph, int currentVertex){
-    if(currentVertex == 0)
-        return 0;
+int secondDFS(vector<vertex> &graph, list <int> endTimeList, list<int> &SCC){
+    SCC.push_back(endTimeList.front());
+    while (!endTimeList.empty()){
+        int i = endTimeList.front();
+        //printf("%d\n", i);
+        endTimeList.pop_front();
+        int k = endTimeList.front();
+        //printf("%d\n", k);
+        for (int j : graph[i].edges){
+            if (k == j){
+                FOUND = 1;
+                SCC.push_back(k);
+                break;
 
-    stack<int> stack;
-    stack.push(currentVertex);
-
-    while(!stack.empty()){
-        currentVertex = stack.top();
-
-        if (graph[currentVertex].visited){
-            stack.pop();
-        }
-        else{ 
-            if (currentVertex == firstVertex){
-                result++;
-            }   
-            graph[currentVertex].visited = true;
-
-            for (int i : graph[currentVertex].edges){
-                if (!graph[i].visited){
-                    stack.push(i);
-                }
+            } else {
+                FOUND = 0;
             }
         }
+        if (FOUND == 0 && SCC.size() > 0){
+            result++;
+            SCC.clear();
+            SCC.push_back(k);
+        } 
     }
     return 0;
 }
@@ -74,6 +72,7 @@ int secondDFS(vector<vertex> &graph, int currentVertex){
 int main(){
     int n, m;
     list<int> endTimeList;
+    list<int> SCC;
     
     if (scanf("%d %d", &n, &m) != 2) {
         return 1;
@@ -107,12 +106,11 @@ int main(){
     for (int i = 1; i < (int) graph.size(); i++){
         firstDFS(graph, graph[i].id, endTimeList);
     }
+    //for (int i : endTimeList)
+    //    printf("%d\n", i);
 
     // Iterate through vertices in order of decreasing finishing times
-    for (int i : endTimeList) {
-        firstVertex = i;
-        secondDFS(transposedGraph, i);
-    }
+    secondDFS(transposedGraph, endTimeList, SCC);
 
     printf("%d\n", result);
 
