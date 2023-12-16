@@ -1,92 +1,149 @@
+#include <iostream>
 #include <vector>
-#include <stdio.h>
-#include <string>
-#include <list>
 #include <stack>
+#include <algorithm>
+#include <set>
+
 using namespace std;
 
-// Vertex struct
 typedef struct {
     int id;
     bool visited;
     vector<int> edges;
 } vertex;
 
-int result = 0;
-int FOUND = 0;
+int maxJumps = 0;
 
-int firstDFS(vector<vertex> &graph, int currentVertex, list<int> &endTimeList){
-    if(currentVertex == 0)
-        return 0;
+/*
+ * 1st DFS - finds the vertices ordered by decreasing end time
+ * @param graph - graph to be explored
+ * @param currentVertex - current vertex
+ * @param endTimeStack - Empty stack to be filled with the vertices ordered by decreasing end time
+*/
+void firstDFS(vector<vertex> &graph, int currentVertex, stack<int> &endTimeStack) {
+    if (graph[currentVertex].visited)
+        return;
 
     stack<int> stack;
     stack.push(currentVertex);
 
-    while(!stack.empty()){
+    while (!stack.empty()) {
         currentVertex = stack.top();
 
-        if (graph[currentVertex].visited){
+        // if the vertex has already been visited, it means that all its edges have been explored
+        if (graph[currentVertex].visited) {
             stack.pop();
+            continue;
         }
-        else{ 
-            graph[currentVertex].visited = true;
 
-            for (int i : graph[currentVertex].edges){
-                if (!graph[i].visited){
-                    stack.push(i);
-                }
-            }
-           endTimeList.push_front(currentVertex); 
-        }
-    }
-    return 0;
-}
+        graph[currentVertex].visited = true;
 
-int secondDFS(vector<vertex> &graph, list <int> endTimeList, list<int> &SCC){
-    SCC.push_back(endTimeList.front());
-    while (!endTimeList.empty()){
-        int i = endTimeList.front();
-        //printf("%d\n", i);
-        endTimeList.pop_front();
-        int k = endTimeList.front();
-        //printf("%d\n", k);
-        for (int j : graph[i].edges){
-            if (k == j){
-                FOUND = 1;
-                SCC.push_back(k);
-                break;
-
-            } else {
-                FOUND = 0;
+        for (int i : graph[currentVertex].edges) {
+            if (!graph[i].visited) {
+                stack.push(i);
             }
         }
-        if (FOUND == 0 && SCC.size() > 0){
-            result++;
-            SCC.clear();
-            SCC.push_back(k);
-        } 
+        endTimeStack.push(currentVertex);
     }
-    return 0;
 }
-    
-int main(){
+
+/*
+ * 2nd DFS - finds the SCCs
+ * @param graph - graph to be explored
+ * @param currentVertex - current vertex
+ * @param scc - Empty vector to be filled with the vertices of the SCC
+*/
+void secondDFS(vector<vertex> &graph, int currentVertex, vector<int> &scc) {
+    if (graph[currentVertex].visited)
+        return;
+
+    stack<int> stack;
+    stack.push(currentVertex);
+
+    while (!stack.empty()) {
+        currentVertex = stack.top();
+
+        if (graph[currentVertex].visited) {
+            stack.pop();
+            continue;
+        }
+
+        graph[currentVertex].visited = true;
+        scc.push_back(currentVertex); // add vertex to the SCC
+
+        for (int i : graph[currentVertex].edges) {
+            if (!graph[i].visited) {
+                stack.push(i);
+            }
+        }
+    }
+}
+
+/*
+ * Verifies if the SCC has connections to other SCCs and increments the number of jumps if it does
+ * @param scc - SCC to be verified
+ * @param graph - graph to be explored
+*/
+void verifyConnections(vector<int> &scc, vector<vertex> &graph) {
+    set<int> sccSet(scc.begin(), scc.end()); // set of the SCC vertices
+
+    for (int vertex : scc) {
+        for (int neighbor : graph[vertex].edges) {
+            if (!sccSet.count(neighbor)) { // if the neighbor is not in the SCC
+                maxJumps++;             // increment the number of jumps
+                return;
+            }
+        }
+    }
+}
+
+/**
+ * Calculates the number of jumps needed to go through all the vertices
+ * @param graph - graph to be explored
+ * @param transposedGraph - transposed graph to be explored
+*/
+void Calculator(vector<vertex> &graph, vector<vertex> &transposedGraph) {
+    stack<int> endTimeStack; 
+
+    // first DFS
+    for (int i = 1; i < (int) graph.size(); i++) {
+        if (!graph[i].visited) {
+            firstDFS(graph, i, endTimeStack);
+        }
+    }
+
+    // reset visited
+    for (int i = 1; i < (int) graph.size(); i++) {
+        graph[i].visited = false;
+    }
+
+    // second DFS
+    while (!endTimeStack.empty()) {
+        int vertex = endTimeStack.top(); // get the vertex with the highest end time
+        endTimeStack.pop();     // remove it from the stack
+
+        if (!graph[vertex].visited) { // if it hasn't been visited yet
+            vector<int> scc;
+            secondDFS(transposedGraph, vertex, scc);
+            verifyConnections(scc, graph);
+        }
+    }
+
+}
+
+int main() {
     int n, m;
-    list<int> endTimeList;
-    list<int> SCC;
-    
-    if (scanf("%d %d", &n, &m) != 2) {
-        return 1;
-    }
-
-    if ((n < 2) || m < 0)
+    if (scanf("%d %d", &n, &m) != 2)
         return 1;
 
-    vector<vertex>graph (n+1, {0, false, {}});
-    vector<vertex>transposedGraph (n+1, {0, false, {}}); 
+    if (n < 2 || m < 0)
+        return 1;
+
+    vector<vertex> graph(n + 1, {0, false, {}});
+    vector<vertex> transposedGraph(n + 1, {0, false, {}});
 
     for (int i = 0; i < m; i++) {
         int x, y;
-
         if (scanf("%d %d", &x, &y) != 2)
             return 1;
 
@@ -99,23 +156,17 @@ int main(){
             transposedGraph[y].visited = false;
             transposedGraph[y].edges.push_back(x);
         } else {
-            return 1;   // values out of range
+            return 1; // values out of range
         }
     }
 
-    for (int i = 1; i < (int) graph.size(); i++){
-        firstDFS(graph, graph[i].id, endTimeList);
-    }
-    //for (int i : endTimeList)
-    //    printf("%d\n", i);
-
-    // Iterate through vertices in order of decreasing finishing times
-    secondDFS(transposedGraph, endTimeList, SCC);
-
-    printf("%d\n", result);
+    Calculator(graph, transposedGraph);
+    printf("%d\n", maxJumps);
 
     return 0;
 }
+
+
 /*
     ===========================================================================
     1. Encontrar os SCCs de um grafo
