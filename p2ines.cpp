@@ -112,21 +112,14 @@ void Calculator(vector<vertex> &graph, vector<vertex> &transposedGraph) {
         }
     }
 
-    // reset visited
-    for (int i = 1; i < (int) graph.size(); i++) {
-        graph[i].visited = false;
-    }
-
     // second DFS
     while (!endTimeStack.empty()) {
         int vertex = endTimeStack.top(); // get the vertex with the highest end time
         endTimeStack.pop();     // remove it from the stack
 
-        if (!graph[vertex].visited) { // if it hasn't been visited yet
-            vector<int> scc;
-            secondDFS(transposedGraph, vertex, scc);
-            verifyConnections(scc, graph);
-        }
+        vector<int> scc;
+        secondDFS(transposedGraph, vertex, scc);
+        verifyConnections(scc, graph);
     }
 
 }
