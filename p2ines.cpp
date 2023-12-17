@@ -1,10 +1,10 @@
 #include <iostream>
 #include <vector>
 #include <stack>
-#include <algorithm>
 #include <set>
 
 using namespace std;
+#define max(a, b) (a > b ? a : b)
 
 typedef struct {
     bool visited;
@@ -13,7 +13,7 @@ typedef struct {
 
 int maxJumps = 0;
 
-/*
+/**
  * 1st DFS - finds the vertices ordered by decreasing end time
  * @param graph - graph to be explored
  * @param currentVertex - current vertex
@@ -29,7 +29,6 @@ void firstDFS(vector<vertex> &graph, int currentVertex, stack<int> &endTimeStack
     while (!stack.empty()) {
         currentVertex = stack.top();
 
-        // if the vertex has already been visited, it means that all its edges have been explored
         if (graph[currentVertex].visited) {
             stack.pop();
             continue;
@@ -46,81 +45,117 @@ void firstDFS(vector<vertex> &graph, int currentVertex, stack<int> &endTimeStack
     }
 }
 
-/*
+/**
  * 2nd DFS - finds the SCCs
  * @param graph - graph to be explored
  * @param currentVertex - current vertex
- * @param scc - Empty vector to be filled with the vertices of the SCC
+ * @param scc - Empty set to be filled with the vertices of the SCC
+ * @return 1 if the SCC was found, 0 otherwise
 */
-void secondDFS(vector<vertex> &graph, int currentVertex, vector<int> &scc) {
-    if (graph[currentVertex].visited)
-        return;
-
+int secondDFS(vector<vertex> &graph, int currentVertex, set<int> &scc) {
     stack<int> stack;
     stack.push(currentVertex);
 
     while (!stack.empty()) {
         currentVertex = stack.top();
 
-        if (graph[currentVertex].visited) {
+        if (graph[currentVertex].visited || graph[currentVertex].edges.empty()) {
             stack.pop();
             continue;
         }
 
         graph[currentVertex].visited = true;
-        scc.push_back(currentVertex); // add vertex to the SCC
+        scc.insert(currentVertex);   // add vertex to the SCC
 
         for (int i : graph[currentVertex].edges) {
+            if (scc.count(i)) {
+                return 1; // Stop it found a strongly connected component
+            }
             if (!graph[i].visited) {
                 stack.push(i);
             }
         }
     }
+    return 0;
 }
-
-/*
- * Verifies if the SCC has connections to other SCCs and increments the number of jumps if it does
- * @param scc - SCC to be verified
+/**
+ * 3rd DFS - finds the maximum number of jumps
  * @param graph - graph to be explored
+ * @param sccs - vector of SCCs
 */
-void verifyConnections(vector<int> &scc, vector<vertex> &graph) {
-    set<int> sccSet(scc.begin(), scc.end()); // set of the SCC vertices
 
-    for (int vertex : scc) {
-        for (int neighbor : graph[vertex].edges) {
-            if (!sccSet.count(neighbor)) { // if the neighbor is not in the SCC
-                maxJumps++;             // increment the number of jumps
-                return;
+void thirdDFS(vector<vertex> &graph, vector<set<int>> sccs) {
+    vector<int> distances(graph.size(), 0);
+
+    for (int i = 1; i < (int) graph.size(); i++) {
+        vector<bool> visited(graph.size(), false);
+        stack<int> stack;
+
+        stack.push(i);
+        visited[i] = true;
+
+        while (!stack.empty()) {
+            int current = stack.top();
+            stack.pop();
+
+            for (int neighbor : graph[current].edges) {
+                bool isSCC = false;
+                
+                // Check if the current vertex and the neighbor are in the same SCC
+                for (set<int> scc : sccs) {
+                    if (scc.count(current) && scc.count(neighbor)) {
+                        isSCC = true;
+                        break;
+                    }
+                }
+
+                // If they are in the same SCC, the distance is the same
+                if (isSCC && !visited[neighbor]) {
+                    visited[neighbor] = true;
+                    distances[neighbor] = max(distances[neighbor], distances[current]);
+                    stack.push(neighbor);
+                }
+
+                // If they are not in the same SCC, the distance is plus one
+                else if (!isSCC && !visited[neighbor]) {
+                    visited[neighbor] = true;
+                    distances[neighbor] = max(distances[neighbor], distances[current] + 1);
+                    stack.push(neighbor);
+                }
             }
         }
+    }
+
+    // Find the maximum distance
+    for (int i = 1; i < (int) distances.size(); i++) {
+        maxJumps = max(maxJumps, distances[i]);
     }
 }
 
 /**
- * Calculates the number of jumps needed to go through all the vertices
+ * Calculates the maximum number of jumps
  * @param graph - graph to be explored
  * @param transposedGraph - transposed graph to be explored
 */
 void Calculator(vector<vertex> &graph, vector<vertex> &transposedGraph) {
-    stack<int> endTimeStack; 
+    stack<int> endTimeStack;
+    vector<set<int>> sccs;
 
-    // first DFS
     for (int i = 1; i < (int) graph.size(); i++) {
-        if (!graph[i].visited) {
-            firstDFS(graph, i, endTimeStack);
+        firstDFS(graph, i, endTimeStack);
+    }
+
+    while (!endTimeStack.empty()) {
+        int vertex = endTimeStack.top(); // get the vertex with the highest end time
+        endTimeStack.pop(); // remove it from the stack
+
+        set<int> scc;
+        if (secondDFS(transposedGraph, vertex, scc) == 1) { // if it found a SCC
+            sccs.push_back(scc);
         }
     }
 
-    // second DFS
-    while (!endTimeStack.empty()) {
-        int vertex = endTimeStack.top(); // get the vertex with the highest end time
-        endTimeStack.pop();     // remove it from the stack
-
-        vector<int> scc;
-        secondDFS(transposedGraph, vertex, scc);
-        verifyConnections(scc, graph);
-    }
-
+    thirdDFS(graph, sccs);
 }
 
 int main() {
@@ -140,10 +175,7 @@ int main() {
             return 1;
 
         if (x >= 1 && x <= n && y >= 1 && y <= n) {
-            graph[x].visited = false;
             graph[x].edges.push_back(y);
-
-            transposedGraph[y].visited = false;
             transposedGraph[y].edges.push_back(x);
         } else {
             return 1; // values out of range
