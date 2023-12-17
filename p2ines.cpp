@@ -7,7 +7,6 @@
 using namespace std;
 
 typedef struct {
-    int id;
     bool visited;
     vector<int> edges;
 } vertex;
@@ -132,8 +131,8 @@ int main() {
     if (n < 2 || m < 0)
         return 1;
 
-    vector<vertex> graph(n + 1, {0, false, {}});
-    vector<vertex> transposedGraph(n + 1, {0, false, {}});
+    vector<vertex> graph(n + 1, {false, {}});
+    vector<vertex> transposedGraph(n + 1, {false, {}});
 
     for (int i = 0; i < m; i++) {
         int x, y;
@@ -141,11 +140,9 @@ int main() {
             return 1;
 
         if (x >= 1 && x <= n && y >= 1 && y <= n) {
-            graph[x].id = x;
             graph[x].visited = false;
             graph[x].edges.push_back(y);
 
-            transposedGraph[y].id = y;
             transposedGraph[y].visited = false;
             transposedGraph[y].edges.push_back(x);
         } else {
