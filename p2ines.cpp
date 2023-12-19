@@ -21,28 +21,33 @@ int maxJumps = 0;
  * @param currentVertex - current vertex
  * @param endTimeStack - Empty stack to be filled with the vertices ordered by decreasing end time
 */
-void firstDFS(vector<vertex> &graph, int start, stack<int> &endTimeStack) {
-    stack<int> s;
-    s.push(start);
+void firstDFS(vector<vertex> &graph, stack<int> &endTimeStack) {
+    for (int start = 1; start < (int) graph.size(); start++) {
+        if (graph[start].visited)
+            continue;
+        
+        stack<int> s;
+        s.push(start);
 
-    while (!s.empty()) {
-        int current = s.top();
+        while (!s.empty()) {
+            int current = s.top();
 
-        if (!graph[current].visited) {
-            graph[current].visited = true;
+            if (!graph[current].visited) {
+                graph[current].visited = true;
 
-            for (int neighbor : graph[current].edges) {
-                if (!graph[neighbor].visited) {
-                    s.push(neighbor);
+                for (int neighbor : graph[current].edges) {
+                    if (!graph[neighbor].visited) {
+                        s.push(neighbor);
+                    }
                 }
-            }
-        } else {
-            // If the vertex has already been added to the endTimeStack, pop it without pushing again
-            s.pop();
+            } else {
+                // If the vertex has already been added to the endTimeStack, pop it without pushing again
+                s.pop();
 
-            if (graph[current].searchtime == false) {
-                graph[current].searchtime = true;
-                endTimeStack.push(current);
+                if (graph[current].searchtime == false) {
+                    graph[current].searchtime = true;
+                    endTimeStack.push(current);
+                }
             }
         }
     }
@@ -55,35 +60,43 @@ void firstDFS(vector<vertex> &graph, int start, stack<int> &endTimeStack) {
  * @param scc - Empty set to be filled with the vertices of the SCC
  * @return 1 if the SCC was found, 0 otherwise
 */
-void secondDFS(vector<vertex> &graph, int currentVertex, vector<int> &sccs, int &scc) {
-    stack<int> stack;
-    stack.push(currentVertex);
+void secondDFS(vector<vertex> &graph, vector<int> &sccs, stack<int> &endTimeStack) {
+    int scc = 1;    
+    while (!endTimeStack.empty()) {
+        int vertex = endTimeStack.top(); // get the vertex with the highest end time
+        endTimeStack.pop(); // remove it from the stack
+        if (graph[vertex].visited)
+            continue;
 
-    if (graph[currentVertex].edges.empty()) {
-        graph[currentVertex].visited = true;
-        sccs[currentVertex] = scc;
-        scc++;
-        return;
-    }
-    
-    while (!stack.empty()) {
-        currentVertex = stack.top();
+        stack<int> stack;
+        stack.push(vertex);
 
-        if (graph[currentVertex].visited) {
-            stack.pop();
+        if (graph[vertex].edges.empty()) {
+            graph[vertex].visited = true;
+            sccs[vertex] = scc;
+            scc++;
             continue;
         }
+        
+        while (!stack.empty()) {
+            vertex = stack.top();
 
-        graph[currentVertex].visited = true;
-        sccs[currentVertex] = scc;
+            if (graph[vertex].visited) {
+                stack.pop();
+                continue;
+            }
 
-        for (int neighbor : graph[currentVertex].edges) {
-            if (!graph[neighbor].visited) {
-                stack.push(neighbor);
+            graph[vertex].visited = true;
+            sccs[vertex] = scc;
+
+            for (int neighbor : graph[vertex].edges) {
+                if (!graph[neighbor].visited) {
+                    stack.push(neighbor);
+                }
             }
         }
+        scc++;
     }
-    scc++;
 }
 /**
  * 3rd DFS - finds the maximum number of jumps
@@ -163,45 +176,6 @@ vector<vertex> createSCCGraph(const vector<int> &sccs, const vector<vertex> &gra
     return sccGraph;
 }
 
-/**
- * Calculates the maximum number of jumps
- * @param graph - graph to be explored
-*/
-void Calculator(vector<vertex> &graph) {
-    stack<int> endTimeStack;
-    vector<int> sccs (graph.size(), 0);
-    int scc = 1;
-
-    for (int i = 1; i < (int) graph.size(); i++) {
-        if (!graph[i].visited)
-            firstDFS(graph, i, endTimeStack);
-    }
-
-    vector<vertex> transposedGraph(graph.size(), {false, 0, {}});
-    transposeGraph(graph, transposedGraph);
-
-    while (!endTimeStack.empty()) {
-        int vertex = endTimeStack.top(); // get the vertex with the highest end time
-        endTimeStack.pop(); // remove it from the stack
-        if (!transposedGraph[vertex].visited)
-            secondDFS(transposedGraph, vertex, sccs, scc);
-    }
-
-    for (vertex &v : transposedGraph)
-        v.edges.clear();
-
-    transposedGraph.clear();
-
-    vector<vertex> sccGraph = createSCCGraph(sccs, graph);
-
-    for (vertex &v : graph)
-        v.edges.clear();
-
-    graph.clear();
-    
-    thirdDFS(sccGraph);
-}
-
 int main() {
     int n, m;
     if (scanf("%d %d", &n, &m) != 2)
@@ -221,7 +195,29 @@ int main() {
         }
     }
 
-    Calculator(graph);
+    stack<int> endTimeStack;
+    vector<int> sccs (graph.size(), 0);
+
+    firstDFS(graph, endTimeStack);
+
+    vector<vertex> transposedGraph(graph.size(), {false, 0, {}});
+    transposeGraph(graph, transposedGraph);
+
+    secondDFS(transposedGraph, sccs, endTimeStack);
+
+    for (vertex &v : transposedGraph)
+        v.edges.clear();
+
+    transposedGraph.clear();
+
+    vector<vertex> sccGraph = createSCCGraph(sccs, graph);
+
+    for (vertex &v : graph)
+        v.edges.clear();
+
+    graph.clear();
+    
+    thirdDFS(sccGraph);
     printf("%d\n", maxJumps);
 
     return 0;
