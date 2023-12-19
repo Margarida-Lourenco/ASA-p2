@@ -22,10 +22,7 @@ int maxJumps = 0;
  * @param currentVertex - current vertex
  * @param endTimeStack - Empty stack to be filled with the vertices ordered by decreasing end time
 */
-void firstDFS(vector<vertex> &graph, int start, stack<int> &endTimeStack/*, int time*/) {
-    if (graph[start].visited)
-        return;
-
+void firstDFS(vector<vertex> &graph, int start, stack<int> &endTimeStack) {
     stack<int> s;
     s.push(start);
 
@@ -92,16 +89,15 @@ void secondDFS(vector<vertex> &graph, int currentVertex, vector<unordered_set<in
  * @param sccs - vector of SCCs
 */
 
-void thirdDFS(vector<vertex> &graph, vector<unordered_set<int>> sccs) {
-    vector<int> distance(graph.size(), 0);
+void thirdDFS(vector<vertex> &graph, vector<unordered_set<int>> sccs, int n, int m) {
+    vector<int> distance(m, 0);
+
     for (int i = 1; i < (int) graph.size(); i++) {
-        for (int i = 1; i < (int) graph.size(); i++) {
-            graph[i].visited = false;
-        }
+        vector<bool> visited(n, false);
         stack<int> stack;
 
         stack.push(i);
-        graph[i].visited = true;
+        visited[i] = true;
 
         while (!stack.empty()) {
             int current = stack.top();
@@ -119,15 +115,15 @@ void thirdDFS(vector<vertex> &graph, vector<unordered_set<int>> sccs) {
                 }
 
                 // If they are in the same SCC, the distance is the same
-                if (isSCC && !graph[neighbor].visited) {
-                    graph[neighbor].visited = true;
+                if (isSCC && !visited[neighbor]) {
+                    visited[neighbor] = true;
                     distance[neighbor] = distance[current];
                     stack.push(neighbor);
                 }
 
                 // If they are not in the same SCC, the distance is plus one
-                else if (!isSCC && !graph[neighbor].visited) {
-                    graph[neighbor].visited = true;
+                else if (!isSCC && !visited[neighbor]) {
+                    visited[neighbor] = true;
                     distance[neighbor] = max(distance[neighbor], distance[current] + 1);
                     stack.push(neighbor);
                 }
@@ -154,13 +150,14 @@ void transposeGraph(vector<vertex> &graph, vector<vertex> &transposedGraph) {
  * @param graph - graph to be explored
  * @param transposedGraph - transposed graph to be explored
 */
-void Calculator(vector<vertex> &graph) {
+void Calculator(vector<vertex> &graph, int n, int m) {
     stack<int> endTimeStack;
     vector<unordered_set<int>> sccs;
     //int time = 1;
 
     for (int i = 1; i < (int) graph.size(); i++) {
-        firstDFS(graph, i, endTimeStack/*, time*/);
+        if (!graph[i].visited)
+            firstDFS(graph, i, endTimeStack);
     }
 
     vector<vertex> transposedGraph(graph.size(), {false, 0, {}});
@@ -169,10 +166,11 @@ void Calculator(vector<vertex> &graph) {
     while (!endTimeStack.empty()) {
         int vertex = endTimeStack.top(); // get the vertex with the highest end time
         endTimeStack.pop(); // remove it from the stack
-        secondDFS(transposedGraph, vertex, sccs);
+        if (!transposedGraph[vertex].visited)
+            secondDFS(transposedGraph, vertex, sccs);
     }
     
-    thirdDFS(graph, sccs);
+    thirdDFS(graph, sccs, n, m);
 }
 
 int main() {
@@ -194,7 +192,7 @@ int main() {
         }
     }
 
-    Calculator(graph);
+    Calculator(graph, n, m);
     printf("%d\n", maxJumps);
 
     return 0;
