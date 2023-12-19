@@ -2,6 +2,7 @@
 #include <vector>
 #include <stack>
 #include <set>
+#include <unordered_set>
 
 using namespace std;
 #define max(a, b) (a > b ? a : b)
@@ -9,7 +10,7 @@ using namespace std;
 typedef struct {
     bool visited;
     int searchtime;
-    int distance;
+    //int distance;
     vector<int> edges;
 } vertex;
 
@@ -58,15 +59,15 @@ void firstDFS(vector<vertex> &graph, int start, stack<int> &endTimeStack/*, int 
  * @param scc - Empty set to be filled with the vertices of the SCC
  * @return 1 if the SCC was found, 0 otherwise
 */
-void secondDFS(vector<vertex> &graph, int currentVertex, vector<set<int>> &sccs) {
+void secondDFS(vector<vertex> &graph, int currentVertex, vector<unordered_set<int>> &sccs) {
     stack<int> stack;
-    set<int> scc;
+    unordered_set<int> scc;
     stack.push(currentVertex);
 
     while (!stack.empty()) {
         currentVertex = stack.top();
 
-        if (graph[currentVertex].visited || graph[currentVertex].edges.empty()) {
+        if (graph[currentVertex].visited /*|| graph[currentVertex].edges.empty()*/) {
             stack.pop();
             continue;
         }
@@ -82,7 +83,8 @@ void secondDFS(vector<vertex> &graph, int currentVertex, vector<set<int>> &sccs)
     }
 
     // Add the current SCC to the vector of SCCs
-    sccs.push_back(scc);
+    if (scc.size() > 1)  // If the SCC has more than one vertex
+        sccs.push_back(scc);
 }
 /**
  * 3rd DFS - finds the maximum number of jumps
@@ -90,8 +92,8 @@ void secondDFS(vector<vertex> &graph, int currentVertex, vector<set<int>> &sccs)
  * @param sccs - vector of SCCs
 */
 
-void thirdDFS(vector<vertex> &graph, vector<set<int>> sccs) {
-
+void thirdDFS(vector<vertex> &graph, vector<unordered_set<int>> sccs) {
+    vector<int> distance(graph.size(), 0);
     for (int i = 1; i < (int) graph.size(); i++) {
         for (int i = 1; i < (int) graph.size(); i++) {
             graph[i].visited = false;
@@ -109,7 +111,7 @@ void thirdDFS(vector<vertex> &graph, vector<set<int>> sccs) {
                 bool isSCC = false;
                 
                 // Check if the current vertex and the neighbor are in the same SCC
-                for (set<int> scc : sccs) {
+                for (unordered_set<int> scc : sccs) {
                     if (scc.count(current) && scc.count(neighbor)) {
                         isSCC = true;
                         break;
@@ -119,14 +121,14 @@ void thirdDFS(vector<vertex> &graph, vector<set<int>> sccs) {
                 // If they are in the same SCC, the distance is the same
                 if (isSCC && !graph[neighbor].visited) {
                     graph[neighbor].visited = true;
-                    graph[neighbor].distance = graph[current].distance;
+                    distance[neighbor] = distance[current];
                     stack.push(neighbor);
                 }
 
                 // If they are not in the same SCC, the distance is plus one
                 else if (!isSCC && !graph[neighbor].visited) {
                     graph[neighbor].visited = true;
-                    graph[neighbor].distance = max (graph[neighbor].distance, graph[current].distance + 1);
+                    distance[neighbor] = max(distance[neighbor], distance[current] + 1);
                     stack.push(neighbor);
                 }
             }
@@ -134,8 +136,8 @@ void thirdDFS(vector<vertex> &graph, vector<set<int>> sccs) {
     }
 
     // Find the maximum distance
-    for (int i = 1; i < (int) graph.size(); i++) {
-        maxJumps = max(maxJumps, graph[i].distance);
+    for (int i = 1; i < (int) distance.size(); i++) {
+        maxJumps = max(maxJumps, distance[i]);
     }
 }
 
@@ -154,7 +156,7 @@ void transposeGraph(vector<vertex> &graph, vector<vertex> &transposedGraph) {
 */
 void Calculator(vector<vertex> &graph) {
     stack<int> endTimeStack;
-    vector<set<int>> sccs;
+    vector<unordered_set<int>> sccs;
     //int time = 1;
 
     for (int i = 1; i < (int) graph.size(); i++) {
@@ -169,16 +171,13 @@ void Calculator(vector<vertex> &graph) {
         endTimeStack.pop(); // remove it from the stack
         secondDFS(transposedGraph, vertex, sccs);
     }
-
+    
     thirdDFS(graph, sccs);
 }
 
 int main() {
     int n, m;
     if (scanf("%d %d", &n, &m) != 2)
-        return 1;
-
-    if (n < 2 || m < 0)
         return 1;
 
     vector<vertex> graph(n + 1, {false, 0, {}});
