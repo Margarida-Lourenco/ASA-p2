@@ -68,15 +68,15 @@ void secondDFS(vector<vertex> &graph, vector<int> &sccs, stack<int> &endTimeStac
         if (graph[vertex].visited)
             continue;
 
-        stack<int> stack;
-        stack.push(vertex);
-
         if (graph[vertex].edges.empty()) {
             graph[vertex].visited = true;
             sccs[vertex] = scc;
             scc++;
             continue;
         }
+
+        stack<int> stack;
+        stack.push(vertex);
         
         while (!stack.empty()) {
             vertex = stack.top();
@@ -108,6 +108,8 @@ void thirdDFS(vector<vertex> &graph) {
     vector<int> distance(graph.size(), 0);
 
     for (int i = 1; i < (int) graph.size(); i++) {
+        if (graph[i].edges.empty())
+            continue;
         vector<bool> visited(graph.size(), false);
         stack<int> stack;
 
@@ -135,18 +137,6 @@ void thirdDFS(vector<vertex> &graph) {
 }
 
 /**
- * Transposes the graph
- * @param graph - graph to be transposed
-*/
-void transposeGraph(vector<vertex> &graph, vector<vertex> &transposedGraph) {
-    for (int i = 1; i < (int) graph.size(); i++) {
-        for (int j : graph[i].edges) {
-            transposedGraph[j].edges.push_back(i);
-        }
-    }
-}
-
-/**
  * Creates the SCC graph
  * @param sccs - vector of SCCs
  * @param graph - graph to be explored
@@ -157,6 +147,8 @@ vector<vertex> createSCCGraph(const vector<int> &sccs, const vector<vertex> &gra
     vector<vertex> sccGraph(graph.size(), {false, 0, {}});
 
     for (int i = 1; i < (int) sccs.size(); i++) {
+        if (graph[i].edges.empty())
+            continue;
         stack<int> stack;
         stack.push(i);
 
@@ -201,7 +193,11 @@ int main() {
     firstDFS(graph, endTimeStack);
 
     vector<vertex> transposedGraph(graph.size(), {false, 0, {}});
-    transposeGraph(graph, transposedGraph);
+    for (int i = 1; i < (int) graph.size(); i++) {
+        for (int j : graph[i].edges) {
+            transposedGraph[j].edges.push_back(i);
+        }
+    }
 
     secondDFS(transposedGraph, sccs, endTimeStack);
 
