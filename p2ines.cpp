@@ -3,6 +3,7 @@
 #include <stack>
 #include <set>
 #include <unordered_set>
+#include <unordered_map>
 
 using namespace std;
 #define max(a, b) (a > b ? a : b)
@@ -61,10 +62,17 @@ void secondDFS(vector<vertex> &graph, int currentVertex, vector<unordered_set<in
     unordered_set<int> scc;
     stack.push(currentVertex);
 
+    if (graph[currentVertex].edges.empty()) {
+        graph[currentVertex].visited = true;
+        scc.insert(currentVertex);
+        sccs.push_back(scc);
+        return;
+    }
+    
     while (!stack.empty()) {
         currentVertex = stack.top();
 
-        if (graph[currentVertex].visited /*|| graph[currentVertex].edges.empty()*/) {
+        if (graph[currentVertex].visited) {
             stack.pop();
             continue;
         }
@@ -79,9 +87,7 @@ void secondDFS(vector<vertex> &graph, int currentVertex, vector<unordered_set<in
         }
     }
 
-    // Add the current SCC to the vector of SCCs
-    if (scc.size() > 1)  // If the SCC has more than one vertex
-        sccs.push_back(scc);
+    sccs.push_back(scc);
 }
 /**
  * 3rd DFS - finds the maximum number of jumps
@@ -89,11 +95,11 @@ void secondDFS(vector<vertex> &graph, int currentVertex, vector<unordered_set<in
  * @param sccs - vector of SCCs
 */
 
-void thirdDFS(vector<vertex> &graph, vector<unordered_set<int>> sccs, int n, int m) {
-    vector<int> distance(m, 0);
+void thirdDFS(vector<vertex> &graph) {
+    vector<int> distance(graph.size(), 0);
 
     for (int i = 1; i < (int) graph.size(); i++) {
-        vector<bool> visited(n, false);
+        vector<bool> visited(graph.size(), false);
         stack<int> stack;
 
         stack.push(i);
@@ -104,28 +110,10 @@ void thirdDFS(vector<vertex> &graph, vector<unordered_set<int>> sccs, int n, int
             stack.pop();
 
             for (int neighbor : graph[current].edges) {
-                bool isSCC = false;
-                
-                // Check if the current vertex and the neighbor are in the same SCC
-                for (unordered_set<int> scc : sccs) {
-                    if (scc.count(current) && scc.count(neighbor)) {
-                        isSCC = true;
-                        break;
-                    }
-                }
-
-                // If they are in the same SCC, the distance is the same
-                if (isSCC && !visited[neighbor]) {
+                if (!visited[neighbor]) {
                     visited[neighbor] = true;
-                    distance[neighbor] = distance[current];
                     stack.push(neighbor);
-                }
-
-                // If they are not in the same SCC, the distance is plus one
-                else if (!isSCC && !visited[neighbor]) {
-                    visited[neighbor] = true;
-                    distance[neighbor] = max(distance[neighbor], distance[current] + 1);
-                    stack.push(neighbor);
+                    distance[i]++;
                 }
             }
         }
@@ -137,6 +125,10 @@ void thirdDFS(vector<vertex> &graph, vector<unordered_set<int>> sccs, int n, int
     }
 }
 
+/**
+ * Transposes the graph
+ * @param graph - graph to be transposed
+*/
 void transposeGraph(vector<vertex> &graph, vector<vertex> &transposedGraph) {
     for (int i = 1; i < (int) graph.size(); i++) {
         for (int j : graph[i].edges) {
@@ -146,11 +138,44 @@ void transposeGraph(vector<vertex> &graph, vector<vertex> &transposedGraph) {
 }
 
 /**
+ * Creates the SCC graph
+ * @param sccs - vector of SCCs
+ * @param graph - graph to be explored
+ * @return SCC graph
+*/
+vector<vertex> createSCCGraph(const vector<unordered_set<int>> &sccs, const vector<vertex> &graph) {
+    int numSCCs = sccs.size();
+    vector<vertex> sccGraph(numSCCs, {false, 0, {}});
+
+    unordered_map<int, int> vertexToSCC;
+
+    for (int i = 0; i < numSCCs; ++i) {
+        for (int vertex : sccs[i]) {
+            vertexToSCC[vertex] = i;
+        }
+    }
+
+    for (int i = 1; i < (int) graph.size(); ++i) {
+        int currentSCC = vertexToSCC[i];
+
+        // Add edges to the SCC graph
+        for (int neighbor : graph[i].edges) {
+            int neighborSCC = vertexToSCC[neighbor];
+
+            if (currentSCC != neighborSCC) {
+                sccGraph[currentSCC].edges.push_back(neighborSCC);
+            }
+        }
+    }
+
+    return sccGraph;
+}
+
+/**
  * Calculates the maximum number of jumps
  * @param graph - graph to be explored
- * @param transposedGraph - transposed graph to be explored
 */
-void Calculator(vector<vertex> &graph, int n, int m) {
+void Calculator(vector<vertex> &graph) {
     stack<int> endTimeStack;
     vector<unordered_set<int>> sccs;
     //int time = 1;
@@ -169,8 +194,18 @@ void Calculator(vector<vertex> &graph, int n, int m) {
         if (!transposedGraph[vertex].visited)
             secondDFS(transposedGraph, vertex, sccs);
     }
+
+    for (vertex &v : transposedGraph)
+        v.edges.clear();
+
+    transposedGraph.clear();
+
+    vector<vertex> sccGraph = createSCCGraph(sccs, graph);
+
+    for (vertex &v : graph)
+        v.edges.clear();
     
-    thirdDFS(graph, sccs, n, m);
+    thirdDFS(sccGraph);
 }
 
 int main() {
@@ -192,7 +227,7 @@ int main() {
         }
     }
 
-    Calculator(graph, n, m);
+    Calculator(graph);
     printf("%d\n", maxJumps);
 
     return 0;
