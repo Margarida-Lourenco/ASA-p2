@@ -1,8 +1,6 @@
 #include <iostream>
 #include <vector>
 #include <stack>
-#include <unordered_set>
-//#include <set>
 
 using namespace std;
 #define max(a, b) (a > b ? a : b)
@@ -10,7 +8,6 @@ using namespace std;
 typedef struct {
     bool visited;
     bool searchtime;
-    unordered_set<int> addedEdges;
     vector<int> edges;
 } vertex;
 
@@ -62,11 +59,13 @@ void firstDFS(vector<vertex> &graph, stack<int> &endTimeStack) {
  * @return 1 if the SCC was found, 0 otherwise
 */
 void secondDFS(vector<vertex> &graph, vector<int> &sccs, stack<int> &endTimeStack) {
-    int scc = 1;    
+    int scc = 1; 
+    vector<int> distance(graph.size(), 0);   
     while (!endTimeStack.empty()) {
         int vertex = endTimeStack.top(); // get the vertex with the highest end time
         endTimeStack.pop(); // remove it from the stack
-        if (graph[vertex].visited)
+
+        if(graph[vertex].visited)
             continue;
 
         stack<int> stack;
@@ -91,78 +90,24 @@ void secondDFS(vector<vertex> &graph, vector<int> &sccs, stack<int> &endTimeStac
             sccs[vertex] = scc;
 
             for (int neighbor : graph[vertex].edges) {
-                if (!graph[neighbor].visited) {
+                int v = sccs[neighbor], u = sccs[vertex];
+                if (graph[neighbor].visited && v != u)
+                    distance[u] = max(distance[u], distance[v] + 1);
+
+                else if(graph[neighbor].visited && v == u)
+                    distance[v] = max(distance[v], distance[u]);
+                    
+                else if (!graph[neighbor].visited) {
+                    distance[v] = max(distance[v], distance[u]);
                     stack.push(neighbor);
                 }
             }
         }
         scc++;
     }
-}
-/**
- * 3rd DFS - finds the maximum number of jumps
- * @param graph - graph to be explored
- * @param sccs - vector of SCCs
-*/
-
-void thirdDFS(vector<vertex> &graph) {
-    vector<int> distance(graph.size(), 0);
-
-    for (int i = 1; i < (int) graph.size(); i++) {
-        vector<bool> visited(graph.size(), false);
-        stack<int> stack;
-
-        stack.push(i);
-        visited[i] = true;
-
-        while (!stack.empty()) {
-            int current = stack.top();
-            stack.pop();
-
-            for (int neighbor : graph[current].edges) {
-                if (!visited[neighbor]) {
-                    visited[neighbor] = true;
-                    stack.push(neighbor);
-                    distance[neighbor] = distance[current] + 1;
-                }
-            }
-        }
-    }
-
-    // Find the maximum distance
     for (int i = 1; i < (int) distance.size(); i++) {
         maxJumps = max(maxJumps, distance[i]);
     }
-}
-
-/**
- * Creates the SCC graph
- * @param sccs - vector of SCCs
- * @param graph - graph to be explored
- * @return SCC graph
-*/
-
-vector<vertex> createSCCGraph(const vector<int> &sccs, const vector<vertex> &graph) {
-    vector<vertex> sccGraph(graph.size(), {false, 0, {}});
-
-    for (int i = 1; i < (int) sccs.size(); i++) {
-        stack<int> stack;
-        stack.push(i);
-
-        while (!stack.empty()) {
-            int current = stack.top();
-            stack.pop();
-
-            for (int neighbor : graph[current].edges) {
-                if (sccs[current] != sccs[neighbor] && sccGraph[sccs[current]].addedEdges.count(sccs[neighbor]) == 0) {
-                    sccGraph[sccs[current]].edges.push_back(sccs[neighbor]);
-                    sccGraph[sccs[current]].addedEdges.insert(sccs[neighbor]);
-                }
-            }
-        }
-    }
-
-    return sccGraph;
 }
 
 int main() {
@@ -189,7 +134,8 @@ int main() {
 
     firstDFS(graph, endTimeStack);
 
-    vector<vertex> transposedGraph(graph.size(), {false, 0, {}});
+    vector<vertex> transposedGraph(graph.size(), {false, {}});
+
     for (int i = 1; i < (int) graph.size(); i++) {
         for (int j : graph[i].edges) {
             transposedGraph[j].edges.push_back(i);
@@ -198,20 +144,8 @@ int main() {
 
     secondDFS(transposedGraph, sccs, endTimeStack);
 
-    // for (vertex &v : transposedGraph)
-    //     v.edges.clear();
-
-    // transposedGraph.clear();
-
-    vector<vertex> sccGraph = createSCCGraph(sccs, graph);
-
-    //for (vertex &v : graph)
-     //   v.edges.clear();
-
-    //graph.clear();
-    
-    thirdDFS(sccGraph);
     printf("%d\n", maxJumps);
 
     return 0;
 }
+
