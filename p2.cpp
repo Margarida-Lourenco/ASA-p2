@@ -1,13 +1,16 @@
 #include <iostream>
 #include <vector>
 #include <stack>
-#include <set>
+#include <unordered_set>
+//#include <set>
 
 using namespace std;
 #define max(a, b) (a > b ? a : b)
 
 typedef struct {
     bool visited;
+    bool searchtime;
+    unordered_set<int> addedEdges;
     vector<int> edges;
 } vertex;
 
@@ -19,25 +22,35 @@ int maxJumps = 0;
  * @param currentVertex - current vertex
  * @param endTimeStack - Empty stack to be filled with the vertices ordered by decreasing end time
 */
-void firstDFS(vector<vertex> &graph, int currentVertex, stack<int> &endTimeStack) {
-    if (graph[currentVertex].visited)
-        return;
-    stack<int> stack;
-    stack.push(currentVertex);
-
-    while (!stack.empty()) {
-        currentVertex = stack.top();
-        if (graph[currentVertex].visited) {
-            stack.pop();
+void firstDFS(vector<vertex> &graph, stack<int> &endTimeStack) {
+    for (int start = 1; start < (int) graph.size(); start++) {
+        if (graph[start].visited)
             continue;
-        }
-        graph[currentVertex].visited = true;
-        for (int i : graph[currentVertex].edges) {
-            if (!graph[i].visited) {
-                stack.push(i);
+        
+        stack<int> s;
+        s.push(start);
+
+        while (!s.empty()) {
+            int current = s.top();
+
+            if (!graph[current].visited) {
+                graph[current].visited = true;
+
+                for (int neighbor : graph[current].edges) {
+                    if (!graph[neighbor].visited) {
+                        s.push(neighbor);
+                    }
+                }
+            } else {
+                // If the vertex has already been added to the endTimeStack, pop it without pushing again
+                s.pop();
+
+                if (graph[current].searchtime == false) {
+                    graph[current].searchtime = true;
+                    endTimeStack.push(current);
+                }
             }
         }
-        endTimeStack.push(currentVertex);
     }
 }
 
@@ -48,31 +61,43 @@ void firstDFS(vector<vertex> &graph, int currentVertex, stack<int> &endTimeStack
  * @param scc - Empty set to be filled with the vertices of the SCC
  * @return 1 if the SCC was found, 0 otherwise
 */
-int secondDFS(vector<vertex> &graph, int currentVertex, set<int> &scc) {
-    stack<int> stack;
-    stack.push(currentVertex);
+void secondDFS(vector<vertex> &graph, vector<int> &sccs, stack<int> &endTimeStack) {
+    int scc = 1;    
+    while (!endTimeStack.empty()) {
+        int vertex = endTimeStack.top(); // get the vertex with the highest end time
+        endTimeStack.pop(); // remove it from the stack
+        if (graph[vertex].visited)
+            continue;
 
-    while (!stack.empty()) {
-        currentVertex = stack.top();
+        stack<int> stack;
+        stack.push(vertex);
 
-        if (graph[currentVertex].visited || graph[currentVertex].edges.empty()) {
-            stack.pop();
+        if (graph[vertex].edges.empty()) {
+            graph[vertex].visited = true;
+            sccs[vertex] = scc;
+            scc++;
             continue;
         }
+        
+        while (!stack.empty()) {
+            vertex = stack.top();
 
-        graph[currentVertex].visited = true;
-        scc.insert(currentVertex);   // add vertex to the SCC
-
-        for (int i : graph[currentVertex].edges) {
-            if (scc.count(i)) {
-                return 1; // Stop it found a strongly connected component
+            if (graph[vertex].visited) {
+                stack.pop();
+                continue;
             }
-            if (!graph[i].visited) {
-                stack.push(i);
+
+            graph[vertex].visited = true;
+            sccs[vertex] = scc;
+
+            for (int neighbor : graph[vertex].edges) {
+                if (!graph[neighbor].visited) {
+                    stack.push(neighbor);
+                }
             }
         }
+        scc++;
     }
-    return 0;
 }
 /**
  * 3rd DFS - finds the maximum number of jumps
@@ -80,8 +105,8 @@ int secondDFS(vector<vertex> &graph, int currentVertex, set<int> &scc) {
  * @param sccs - vector of SCCs
 */
 
-void thirdDFS(vector<vertex> &graph, vector<set<int>> sccs) {
-    vector<int> distances(graph.size(), 0);
+void thirdDFS(vector<vertex> &graph) {
+    vector<int> distance(graph.size(), 0);
 
     for (int i = 1; i < (int) graph.size(); i++) {
         vector<bool> visited(graph.size(), false);
@@ -95,70 +120,49 @@ void thirdDFS(vector<vertex> &graph, vector<set<int>> sccs) {
             stack.pop();
 
             for (int neighbor : graph[current].edges) {
-                bool isSCC = false;
-                
-                // Check if the current vertex and the neighbor are in the same SCC
-                for (set<int> scc : sccs) {
-                    if (scc.count(current) && scc.count(neighbor)) {
-                        isSCC = true;
-                        break;
-                    }
-                }
-
-                // If they are in the same SCC, the distance is the same
-                if (isSCC && !visited[neighbor]) {
+                if (!visited[neighbor]) {
                     visited[neighbor] = true;
-                    distances[neighbor] = max(distances[neighbor], distances[current]);
                     stack.push(neighbor);
-                }
-
-                // If they are not in the same SCC, the distance is plus one
-                else if (!isSCC && !visited[neighbor]) {
-                    visited[neighbor] = true;
-                    distances[neighbor] = max(distances[neighbor], distances[current] + 1);
-                    stack.push(neighbor);
+                    distance[neighbor] = distance[current] + 1;
                 }
             }
         }
     }
 
     // Find the maximum distance
-    for (int i = 1; i < (int) distances.size(); i++) {
-        maxJumps = max(maxJumps, distances[i]);
+    for (int i = 1; i < (int) distance.size(); i++) {
+        maxJumps = max(maxJumps, distance[i]);
     }
 }
 
 /**
- * Calculates the maximum number of jumps
+ * Creates the SCC graph
+ * @param sccs - vector of SCCs
  * @param graph - graph to be explored
- * @param transposedGraph - transposed graph to be explored
+ * @return SCC graph
 */
-void Calculator(vector<vertex> &graph) {
-    stack<int> endTimeStack;
-    vector<set<int>> sccs;
 
-    for (int i = 1; i < (int) graph.size(); i++) {
-        firstDFS(graph, i, endTimeStack);
-    }
+vector<vertex> createSCCGraph(const vector<int> &sccs, const vector<vertex> &graph) {
+    vector<vertex> sccGraph(graph.size(), {false, 0, {}});
 
-    vector<vertex> transposedGraph(graph.size(), {false, {}});
-    for (int i = 1; i < (int) graph.size(); i++) {
-        for (int j : graph[i].edges) {
-            transposedGraph[j].edges.push_back(i);
+    for (int i = 1; i < (int) sccs.size(); i++) {
+        stack<int> stack;
+        stack.push(i);
+
+        while (!stack.empty()) {
+            int current = stack.top();
+            stack.pop();
+
+            for (int neighbor : graph[current].edges) {
+                if (sccs[current] != sccs[neighbor] && sccGraph[sccs[current]].addedEdges.count(sccs[neighbor]) == 0) {
+                    sccGraph[sccs[current]].edges.push_back(sccs[neighbor]);
+                    sccGraph[sccs[current]].addedEdges.insert(sccs[neighbor]);
+                }
+            }
         }
     }
 
-    while (!endTimeStack.empty()) {
-        int vertex = endTimeStack.top(); // get the vertex with the highest end time
-        endTimeStack.pop(); // remove it from the stack
-
-        set<int> scc;
-        if (secondDFS(transposedGraph, vertex, scc) == 1) { // if it found a SCC
-            sccs.push_back(scc);
-        }
-    }
-
-    thirdDFS(graph, sccs);
+    return sccGraph;
 }
 
 int main() {
@@ -166,10 +170,7 @@ int main() {
     if (scanf("%d %d", &n, &m) != 2)
         return 1;
 
-    if (n < 2 || m < 0)
-        return 1;
-
-    vector<vertex> graph(n + 1, {false, {}});
+    vector<vertex> graph(n + 1, {false, false, {}});
 
     for (int i = 0; i < m; i++) {
         int x, y;
@@ -183,7 +184,33 @@ int main() {
         }
     }
 
-    Calculator(graph);
+    stack<int> endTimeStack;
+    vector<int> sccs (graph.size(), 0);
+
+    firstDFS(graph, endTimeStack);
+
+    vector<vertex> transposedGraph(graph.size(), {false, 0, {}});
+    for (int i = 1; i < (int) graph.size(); i++) {
+        for (int j : graph[i].edges) {
+            transposedGraph[j].edges.push_back(i);
+        }
+    }
+
+    secondDFS(transposedGraph, sccs, endTimeStack);
+
+    // for (vertex &v : transposedGraph)
+    //     v.edges.clear();
+
+    // transposedGraph.clear();
+
+    vector<vertex> sccGraph = createSCCGraph(sccs, graph);
+
+    //for (vertex &v : graph)
+     //   v.edges.clear();
+
+    //graph.clear();
+    
+    thirdDFS(sccGraph);
     printf("%d\n", maxJumps);
 
     return 0;
