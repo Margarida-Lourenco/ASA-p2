@@ -14,9 +14,8 @@ typedef struct {
 int maxJumps = 0;
 
 /**
- * 1st DFS - finds the vertices ordered by decreasing end time
+ * 1st DFS - order the vertices by decreasing end time filling the endTimeStack
  * @param graph - graph to be explored
- * @param currentVertex - current vertex
  * @param endTimeStack - Empty stack to be filled with the vertices ordered by decreasing end time
 */
 void firstDFS(vector<vertex> &graph, stack<int> &endTimeStack) {
@@ -52,18 +51,17 @@ void firstDFS(vector<vertex> &graph, stack<int> &endTimeStack) {
 }
 
 /**
- * 2nd DFS - finds the SCCs
+ * 2nd DFS - finds the SCCs and the maximum number of jumps
  * @param graph - graph to be explored
- * @param currentVertex - current vertex
- * @param scc - Empty set to be filled with the vertices of the SCC
- * @return 1 if the SCC was found, 0 otherwise
+ * @param sccs - Empty vector to be filled with the SCCs
+ * @param endTimeStack - Stack with the vertices ordered by decreasing end time
 */
 void secondDFS(vector<vertex> &graph, vector<int> &sccs, stack<int> &endTimeStack) {
     int scc = 1; 
     vector<int> distance(graph.size(), 0);   
     while (!endTimeStack.empty()) {
-        int vertex = endTimeStack.top(); // get the vertex with the highest end time
-        endTimeStack.pop(); // remove it from the stack
+        int vertex = endTimeStack.top();  // get the vertex with the highest end time
+        endTimeStack.pop(); 
 
         if(graph[vertex].visited)
             continue;
@@ -91,13 +89,13 @@ void secondDFS(vector<vertex> &graph, vector<int> &sccs, stack<int> &endTimeStac
 
             for (int neighbor : graph[vertex].edges) {
                 int v = sccs[neighbor], u = sccs[vertex];
-                if (graph[neighbor].visited && v != u)
+                if (graph[neighbor].visited && v != u)               // if the neighbor is visited and it's not in the same SCC   
                     distance[u] = max(distance[u], distance[v] + 1);
 
-                else if(graph[neighbor].visited && v == u)
+                else if(graph[neighbor].visited && v == u)           // if the neighbor is visited and it's in the same SCC
                     distance[v] = max(distance[v], distance[u]);
                     
-                else if (!graph[neighbor].visited) {
+                else if (!graph[neighbor].visited) {                 // if the neighbor is not visited
                     distance[v] = max(distance[v], distance[u]);
                     stack.push(neighbor);
                 }
